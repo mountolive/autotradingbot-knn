@@ -175,9 +175,6 @@ def main(*args):
 
         sleep(sleep_time)
 
-
-
-
 class TradesLogger(logging.Logger):
     """Class for logging proposes"""
 
