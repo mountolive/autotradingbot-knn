@@ -41,26 +41,26 @@ def model_trainer(pair, classifier):
 
 
 def create_operation(prediction, pair, last_price, take_profit_pips=50, stop_loss_pips=20, units='10000'):
-        """Function that creates the necessary data for the request of an operation"""
+    """Function that creates the necessary data for the request of an operation"""
 
-        TP = "{:.5f}".format(last_price + float(take_profit_pips)*0.0001 if pair != 'USD_JPY'
-                             else float(take_profit_pips)*0.01)
-        SL = "{:.5f}".format(last_price - float(stop_loss_pips)*0.0001 if pair != 'USD_JPY'
-                             else float(stop_loss_pips)*0.01)
-        return {'order': {
-            'timeInForce': 'FOK',
-            'instrument': pair,
-            'positionFill': 'DEFAULT',
-            'units': units if prediction == 1 else '-'.join(units),
-            'type': 'MARKET',
-            'takeProfitOnFill': {
-                'timeInForce': 'GTC',
-                'price': TP},
-            'stopLossOnFill': {
-                'timeInForce': 'GTC',
-                'price': SL}
-            }
+    tp = "{:.5f}".format(last_price + float(take_profit_pips)*0.0001 if pair != 'USD_JPY'
+                         else float(take_profit_pips)*0.01)
+    sl = "{:.5f}".format(last_price - float(stop_loss_pips)*0.0001 if pair != 'USD_JPY'
+                         else float(stop_loss_pips)*0.01)
+    return {'order': {
+        'timeInForce': 'FOK',
+        'instrument': pair,
+        'positionFill': 'DEFAULT',
+        'units': units if prediction == 1 else '-'.join(units),
+        'type': 'MARKET',
+        'takeProfitOnFill': {
+            'timeInForce': 'GTC',
+            'price': tp},
+        'stopLossOnFill': {
+            'timeInForce': 'GTC',
+            'price': sl}
         }
+    }
 
 
 def main(*args):
