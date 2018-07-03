@@ -131,7 +131,7 @@ def main():
         candles_data = np.array([pd.DataFrame(candles.response['candles'])
                                 .mid[x]['c'] for x in range(n)])
 
-        Xtest = np.array([[indicator_handler.momentum(candles_data) * 100,
+        x_test = np.array([[indicator_handler.momentum(candles_data) * 100,
                            indicator_handler.sma(candles_data),
                            indicator_handler.bollinger_bands(candles_data)]])
 
@@ -154,14 +154,14 @@ def main():
                                             float(df.closeoutAsk[0]))
         t1 = datetime.strptime(str(df.time[0])[0:26], "%Y-%m-%dT%H:%M:%S.%f")
         print 'Current broker time = %d:%02d' % (t1.hour, t1.minute)
-        print 'Momentum, SMA, BB =  ', Xtest
-        prediction = classifier.predict(Xtest)
+        print 'Momentum, SMA, BB =  ', x_test
+        prediction = classifier.predict(x_test)
         s_oper = '* %d/%02d/%02d %d:%02d ' % (t1.year, t1.month, t1.day,
                                               t1.hour, t1.minute)
-        s_pred = 'Xtest = %0.4f, %0.4f, %0.4f pred = %d \n' \
-                 % (Xtest[0, 0],
-                    Xtest[0, 1],
-                    Xtest[0, 2],
+        s_pred = 'x_test = %0.4f, %0.4f, %0.4f pred = %d \n' \
+                 % (x_test[0, 0],
+                    x_test[0, 1],
+                    x_test[0, 2],
                     int(prediction[0]))
         s_oper.join(sys.argv[1])
         s_oper.join(' Close = %0.5f ' % float(df.closeoutAsk[0]))
@@ -175,7 +175,7 @@ def main():
             int(prediction[0])
         action = {0: "Nothing", 1: "Buy", 2: "Sell"}
         s_oper.join('pred = %s \n' % action[int(prediction[0])])
-        probability_success = classifier.predict_proba(Xtest)
+        probability_success = classifier.predict_proba(x_test)
         print 'Probability of prediction = %0.1f percent' \
               % (probability_success.max() * 100)
         logger.prediction(s_pred)
@@ -188,7 +188,7 @@ def main():
             ord_info = orders.OrderCreate(account_id, data=order)
             if number_of_tries < 10:
                 try:
-                   api.request(ord_info)
+                    api.request(ord_info)
                 except Exception:
                     number_of_tries += 1
                     logging.warn('Exception order request, trial number = %s'
