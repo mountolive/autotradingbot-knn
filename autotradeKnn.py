@@ -63,28 +63,31 @@ def create_operation(prediction, pair, last_price, take_profit_pips=50, stop_los
     }
 
 
-def main(*args):
+def main():
     """Main function for program's execution"""
 
-    if len(args) != 4:
+    if len(sys.argv) != 5:
         logging.info('You need 4 arguments for running this script: location of token.dat, '
                      'pair (e.g. GBP_USD), Number of Neighbors, Take Profit level (in pips) and '
                      'Stop Loss level (in pips)')
-        raise OperationInvalidException('Not enough arguments: %s given' % len(args))
-
-    with open(args[0], 'r') as tokenfile:
-        accountID = tokenfile.readline().rstrip()
-        access_token = tokenfile.readline().rstrip()
+        raise OperationInvalidException('Incorrect number of arguments: %s given' % len(sys.argv))
+    try:
+        with open(sys.argv[1], 'r') as tokenfile:
+            accountID = tokenfile.readline().rstrip()
+            access_token = tokenfile.readline().rstrip()
+    except IOError:
+        logging.error('Check if the provided directory is correct')
+        raise OperationInvalidException('Directory does not exist')
 
     # Training the KNN
-    classifier = model_trainer(args[1], KNeighborsClassifier(n_neighbors=args[2]))
+    classifier = model_trainer(sys.argv[2], KNeighborsClassifier(n_neighbors=sys.argv[3]))
 
     # We need to instantiate the Oanda API
     api = API(access_token=access_token)
-    price_info = pricing.PricingInfo(accountID=accountID, params={'instruments': args[1]})
+    price_info = pricing.PricingInfo(accountID=accountID, params={'instruments': sys.argv[2]})
     res = api.request(price_info)
     df = pd.DataFrame(res.response['prices'])
-    print 'Current %s price = %0.5f' % (args[1], float(df.closeoutAsk[0]))
+    print 'Current %s price = %0.5f' % (sys.argv[2], float(df.closeoutAsk[0]))
     t1 = datetime.strptime(str(df.time[0])[0:26], "%Y-%m-%dT%H:%M:%S.%f")
     print 'Current broker time = %d:%02d' % (t1.hour, t1.minute)
 
@@ -101,7 +104,7 @@ def main(*args):
 
         n = 20
         params = {'count': n + 1, 'granularity': 'H1'}
-        candles = instruments.InstrumentsCandles(instrument=args[1], params=params)
+        candles = instruments.InstrumentsCandles(instrument=sys.argv[2], params=params)
         if number_of_tries < 10:
             try:
                 api.request(candles)
@@ -122,7 +125,7 @@ def main(*args):
         Xtest = np.array([[indicator_handler.momentum(candles_data) * 100, indicator_handler.sma(candles_data),
                            indicator_handler.bollinger_bands(candles_data)]])
 
-        price_info = pricing.PricingInfo(accountID=accountID, params={'instruments': args[1]})
+        price_info = pricing.PricingInfo(accountID=accountID, params={'instruments': sys.argv[2]})
         if number_of_tries < 10:
             try:
                 res = api.request(price_info)
@@ -135,7 +138,7 @@ def main(*args):
             sleep(sleep_time)
 
         df = pd.DataFrame(res.response['prices'])
-        print 'Current %s price = %0.5f' % (args[1], float(df.closeoutAsk[0]))
+        print 'Current %s price = %0.5f' % (sys.argv[2], float(df.closeoutAsk[0]))
         t1 = datetime.strptime(str(df.time[0])[0:26], "%Y-%m-%dT%H:%M:%S.%f")
         print 'Current broker time = %d:%02d' % (t1.hour, t1.minute)
         print 'Momentum, SMA, BB =  ', Xtest
@@ -143,7 +146,7 @@ def main(*args):
         s_oper = '* %d/%02d/%02d %d:%02d ' % (t1.year, t1.month, t1.day, t1.hour, t1.minute)
         s_pred = 'Xtest = %0.4f, %0.4f, %0.4f pred = %d \n' % (Xtest[0, 0], Xtest[0, 1],
                                                         Xtest[0, 2], int(prediction[0]))
-        s_oper.join(args[1])
+        s_oper.join(argv[1])
         s_oper.join(' Close = %0.5f ' % float(df.closeoutAsk[0]))
 
         if t1.hour == current_hour:
@@ -160,7 +163,7 @@ def main(*args):
 
         if int(prediction[0]) != 0:
             logger.operation(s_oper)
-            order = create_operation(int(prediction[0]), args[1], float(df.closeoutAsk[0]), args[3], args[4])
+            order = create_operation(int(prediction[0]), sys.argv[2], float(df.closeoutAsk[0]), sys.argv[3], sys.argv[4])
             ord_info = orders.OrderCreate(accountID, data=order)
             if number_of_tries < 10:
                 try:
@@ -205,7 +208,7 @@ class TradesLogger(logging.Logger):
         self.operation_logger.info(msg)
 
 
-class TechinicalIndicatorBuilder(object):
+class TechinicalIndicatorBuilder:
     """This class defines all the indicators used in the bot for the construction
         of new features"""
 
@@ -237,4 +240,4 @@ class OperationInvalidException(Exception):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
