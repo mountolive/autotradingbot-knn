@@ -66,11 +66,11 @@ def create_operation(prediction, pair, last_price, take_profit_pips=50, stop_los
 def main(*args):
     """Main function for program's execution"""
 
-    if args.count() != 4:
+    if len(args) != 4:
         logging.info('You need 4 arguments for running this script: location of token.dat, '
                      'pair (e.g. GBP_USD), Number of Neighbors, Take Profit level (in pips) and '
                      'Stop Loss level (in pips)')
-        raise OperationInvalidException('Not enough arguments')
+        raise OperationInvalidException('Not enough arguments: %s given' % len(args))
 
     with open(args[0], 'r') as tokenfile:
         accountID = tokenfile.readline().rstrip()
@@ -107,7 +107,7 @@ def main(*args):
                 api.request(candles)
             except Exception:
                 number_of_tries += 1
-                logging.warn('Exception candles request, trial number = %s') % number_of_tries
+                logging.warn('Exception candles request, trial number = %s' % number_of_tries)
         else:
             logging.error('No connection, wait till next hour *** ')
             number_of_tries = 0
@@ -128,7 +128,7 @@ def main(*args):
                 res = api.request(price_info)
             except Exception:
                 number_of_tries += 1
-                logging.warn('Exception candles request, trial number = %s') % number_of_tries
+                logging.warn('Exception candles request, trial number = %s' % number_of_tries)
         else:
             logging.error('No connection, wait until next hour *** ')
             number_of_tries = 0
@@ -167,7 +167,7 @@ def main(*args):
                    api.request(ord_info)
                 except Exception:
                     number_of_tries += 1
-                    logging.warn('Exception order request, trial number = %s') % number_of_tries
+                    logging.warn('Exception order request, trial number = %s' % number_of_tries)
             else:
                 logging.error('No connection, wait until next hour *** ')
                 number_of_tries = 0
