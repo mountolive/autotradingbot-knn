@@ -125,7 +125,7 @@ def main():
             sleep(sleep_time)
 
         # Instantiating indicator handler
-        indicator_handler = TechinicalIndicatorBuilder(14, n)
+        indicator_handler = TechnicalIndicatorBuilder(14, n)
 
         # Converting data to array
         candles_data = np.array([pd.DataFrame(candles.response['candles'])
@@ -233,7 +233,7 @@ class TradesLogger(logging.Logger):
         self.operation_logger.info(msg)
 
 
-class TechinicalIndicatorBuilder:
+class TechnicalIndicatorBuilder:
     """This class defines all the indicators used in the bot for the
     construction of new features"""
 
