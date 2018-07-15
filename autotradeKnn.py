@@ -146,8 +146,8 @@ def main():
         s_oper = '* %d/%02d/%02d %d:%02d ' % (t1.year, t1.month, t1.day, t1.hour, t1.minute)
         s_pred = 'Xtest = %0.4f, %0.4f, %0.4f pred = %d \n' % (Xtest[0, 0], Xtest[0, 1],
                                                         Xtest[0, 2], int(prediction[0]))
-        s_oper.join(argv[1])
-        s_oper.join(' Close = %0.5f ' % float(df.closeoutAsk[0]))
+        s_oper += argv[1]
+        s_oper += ' Close = %0.5f ' % float(df.closeoutAsk[0])
 
         if t1.hour == current_hour:
             print 'Weekend?'
@@ -156,7 +156,7 @@ def main():
         current_hour = t1.hour
         print 'Prediction using KNN (0:do nothing,1: buy, 2:sell) = ', int(prediction[0])
         action = {0: "Nothing", 1: "Buy", 2: "Sell"}
-        s_oper.join('pred = %s \n' % action[int(prediction[0])])
+        s_oper += 'pred = %s \n' % action[int(prediction[0])]
         probability_success = classifier.predict_proba(Xtest)
         print 'Probability of prediction = %0.1f percent' % (probability_success.max() * 100)
         logger.prediction(s_pred)
