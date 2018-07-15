@@ -25,7 +25,8 @@ def setup_logger(name, log_file, level=logging.INFO):
 
 
 def model_trainer(pair, classifier):
-    """Function that loads the data for training the ML model and executes the fit"""
+    """Function that loads the data for training the ML model and executes
+    the fit"""
 
     try:
         Xtrain = np.load(pair + "_dataX.npy")
@@ -40,13 +41,15 @@ def model_trainer(pair, classifier):
     return classifier
 
 
-def create_operation(prediction, pair, last_price, take_profit_pips=50, stop_loss_pips=20, units='10000'):
-    """Function that creates the necessary data for the request of an operation"""
+def create_operation(prediction, pair, last_price, take_profit_pips=50,
+                     stop_loss_pips=20, units='10000'):
+    """Function that creates the necessary data for the request of an
+    operation"""
 
-    tp = "{:.5f}".format(last_price + float(take_profit_pips)*0.0001 if pair != 'USD_JPY'
-                         else float(take_profit_pips)*0.01)
-    sl = "{:.5f}".format(last_price - float(stop_loss_pips)*0.0001 if pair != 'USD_JPY'
-                         else float(stop_loss_pips)*0.01)
+    tp = "{:.5f}".format(last_price + float(take_profit_pips)*0.0001
+                         if pair != 'USD_JPY'else float(take_profit_pips)*0.01)
+    sl = "{:.5f}".format(last_price - float(stop_loss_pips)*0.0001
+                         if pair != 'USD_JPY' else float(stop_loss_pips)*0.01)
     return {'order': {
         'timeInForce': 'FOK',
         'instrument': pair,
@@ -67,30 +70,33 @@ def main():
     """Main function for program's execution"""
 
     if len(sys.argv) != 5:
-        logging.info('You need 4 arguments for running this script: location of token.dat, '
-                     'pair (e.g. GBP_USD), Number of Neighbors, Take Profit level (in pips) and '
+        logging.info('You need 4 arguments for running this script: '
+                     'location of token.dat, pair (e.g. GBP_USD), '
+                     'Number of Neighbors, Take Profit level (in pips) and '
                      'Stop Loss level (in pips)')
-        raise OperationInvalidException('Incorrect number of arguments: %s given' % len(sys.argv))
+        raise OperationInvalidException(
+            'Incorrect number of arguments: %s given' % len(sys.argv))
     try:
         with open(sys.argv[1], 'r') as tokenfile:
-            accountID = tokenfile.readline().rstrip()
+            account_id = tokenfile.readline().rstrip()
             access_token = tokenfile.readline().rstrip()
     except IOError:
         logging.error('Check if the provided directory is correct')
         raise OperationInvalidException('Directory does not exist')
 
     # Training the KNN
-    classifier = model_trainer(sys.argv[2], KNeighborsClassifier(n_neighbors=sys.argv[3]))
+    classifier = model_trainer(sys.argv[2], KNeighborsClassifier(n_neighbors=
+                                                                 sys.argv[3]))
 
     # We need to instantiate the Oanda API
     api = API(access_token=access_token)
-    price_info = pricing.PricingInfo(accountID=accountID, params={'instruments': sys.argv[2]})
+    price_info = pricing.PricingInfo(accountID=account_id,
+                                     params={'instruments': sys.argv[2]})
     res = api.request(price_info)
     df = pd.DataFrame(res.response['prices'])
     print 'Current %s price = %0.5f' % (sys.argv[2], float(df.closeoutAsk[0]))
     t1 = datetime.strptime(str(df.time[0])[0:26], "%Y-%m-%dT%H:%M:%S.%f")
     print 'Current broker time = %d:%02d' % (t1.hour, t1.minute)
-
 
     current_hour = t1.hour
     time_per_operation = 63  # minutes to next operation
@@ -104,73 +110,88 @@ def main():
 
         n = 20
         params = {'count': n + 1, 'granularity': 'H1'}
-        candles = instruments.InstrumentsCandles(instrument=sys.argv[2], params=params)
+        candles = instruments.InstrumentsCandles(instrument=sys.argv[2],
+                                                 params=params)
         if number_of_tries < 10:
             try:
                 api.request(candles)
             except Exception:
                 number_of_tries += 1
-                logging.warn('Exception candles request, trial number = %s' % number_of_tries)
+                logging.warn('Exception candles request, trial number = %s'
+                             % number_of_tries)
         else:
             logging.error('No connection, wait till next hour *** ')
             number_of_tries = 0
             sleep(sleep_time)
 
         # Instantiating indicator handler
-        indicator_handler = TechinicalIndicatorBuilder(14, n)
+        indicator_handler = TechnicalIndicatorBuilder(14, n)
 
         # Converting data to array
-        candles_data = np.array([pd.DataFrame(candles.response['candles']).mid[x]['c'] for x in range(n)])
+        candles_data = np.array([pd.DataFrame(candles.response['candles'])
+                                .mid[x]['c'] for x in range(n)])
 
-        Xtest = np.array([[indicator_handler.momentum(candles_data) * 100, indicator_handler.sma(candles_data),
+        x_test = np.array([[indicator_handler.momentum(candles_data) * 100,
+                           indicator_handler.sma(candles_data),
                            indicator_handler.bollinger_bands(candles_data)]])
 
-        price_info = pricing.PricingInfo(accountID=accountID, params={'instruments': sys.argv[2]})
+        price_info = pricing.PricingInfo(accountID=account_id,
+                                         params={'instruments': sys.argv[2]})
         if number_of_tries < 10:
             try:
                 res = api.request(price_info)
             except Exception:
                 number_of_tries += 1
-                logging.warn('Exception candles request, trial number = %s' % number_of_tries)
+                logging.warn('Exception candles request, trial number = %s'
+                             % number_of_tries)
         else:
             logging.error('No connection, wait until next hour *** ')
             number_of_tries = 0
             sleep(sleep_time)
 
         df = pd.DataFrame(res.response['prices'])
-        print 'Current %s price = %0.5f' % (sys.argv[2], float(df.closeoutAsk[0]))
+        print 'Current %s price = %0.5f' % (sys.argv[2],
+                                            float(df.closeoutAsk[0]))
         t1 = datetime.strptime(str(df.time[0])[0:26], "%Y-%m-%dT%H:%M:%S.%f")
         print 'Current broker time = %d:%02d' % (t1.hour, t1.minute)
-        print 'Momentum, SMA, BB =  ', Xtest
-        prediction = classifier.predict(Xtest)
-        s_oper = '* %d/%02d/%02d %d:%02d ' % (t1.year, t1.month, t1.day, t1.hour, t1.minute)
-        s_pred = 'Xtest = %0.4f, %0.4f, %0.4f pred = %d \n' % (Xtest[0, 0], Xtest[0, 1],
-                                                        Xtest[0, 2], int(prediction[0]))
+        print 'Momentum, SMA, BB =  ', x_test
+        prediction = classifier.predict(x_test)
+        s_oper = '* %d/%02d/%02d %d:%02d ' % (t1.year, t1.month, t1.day,
+                                              t1.hour, t1.minute)
+        s_pred = 'x_test = %0.4f, %0.4f, %0.4f pred = %d \n' \
+                 % (x_test[0, 0],
+                    x_test[0, 1],
+                    x_test[0, 2],
+                    int(prediction[0]))
         s_oper += argv[1]
         s_oper += ' Close = %0.5f ' % float(df.closeoutAsk[0])
-
         if t1.hour == current_hour:
             print 'Weekend?'
             sleep(sleep_time)
 
         current_hour = t1.hour
-        print 'Prediction using KNN (0:do nothing,1: buy, 2:sell) = ', int(prediction[0])
+        print 'Prediction using KNN (0:do nothing,1: buy, 2:sell) = ', \
+            int(prediction[0])
         action = {0: "Nothing", 1: "Buy", 2: "Sell"}
         s_oper += 'pred = %s \n' % action[int(prediction[0])]
-        probability_success = classifier.predict_proba(Xtest)
-        print 'Probability of prediction = %0.1f percent' % (probability_success.max() * 100)
+        probability_success = classifier.predict_proba(x_test)
+        print 'Probability of prediction = %0.1f percent' \
+              % (probability_success.max() * 100)
         logger.prediction(s_pred)
 
         if int(prediction[0]) != 0:
             logger.operation(s_oper)
-            order = create_operation(int(prediction[0]), sys.argv[2], float(df.closeoutAsk[0]), sys.argv[3], sys.argv[4])
-            ord_info = orders.OrderCreate(accountID, data=order)
+            order = create_operation(int(prediction[0]), sys.argv[2],
+                                     float(df.closeoutAsk[0]),
+                                     sys.argv[3], sys.argv[4])
+            ord_info = orders.OrderCreate(account_id, data=order)
             if number_of_tries < 10:
                 try:
-                   api.request(ord_info)
+                    api.request(ord_info)
                 except Exception:
                     number_of_tries += 1
-                    logging.warn('Exception order request, trial number = %s' % number_of_tries)
+                    logging.warn('Exception order request, trial number = %s'
+                                 % number_of_tries)
             else:
                 logging.error('No connection, wait until next hour *** ')
                 number_of_tries = 0
@@ -178,14 +199,17 @@ def main():
 
         sleep(sleep_time)
 
+
 class TradesLogger(logging.Logger):
     """Class for logging proposes"""
 
     def __init__(self, name="logger", level=logging.NOTSET):
         self._count = 0
         self._countLock = threading.Lock()
-        self.prediction_logger = setup_logger('prediction_logger', 'predictions.log')
-        self.operation_logger = setup_logger('operation_logger', 'operations.log')
+        self.prediction_logger = setup_logger('prediction_logger',
+                                              'predictions.log')
+        self.operation_logger = setup_logger('operation_logger',
+                                             'operations.log')
 
         return super(TradesLogger, self).__init__(name, level)
 
@@ -208,9 +232,9 @@ class TradesLogger(logging.Logger):
         self.operation_logger.info(msg)
 
 
-class TechinicalIndicatorBuilder:
-    """This class defines all the indicators used in the bot for the construction
-        of new features"""
+class TechnicalIndicatorBuilder:
+    """This class defines all the indicators used in the bot for the
+    construction of new features"""
 
     def __init__(self, periods=14, n=60):
         """ Constructor, uses periods and total data to analyse
