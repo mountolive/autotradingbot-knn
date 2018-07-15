@@ -156,15 +156,17 @@ def main():
         print 'Current broker time = %d:%02d' % (t1.hour, t1.minute)
         print 'Momentum, SMA, BB =  ', x_test
         prediction = classifier.predict(x_test)
-        s_oper = '* %d/%02d/%02d %d:%02d ' % (t1.year, t1.month, t1.day,
-                                              t1.hour, t1.minute)
-        s_pred = 'x_test = %0.4f, %0.4f, %0.4f pred = %d \n' \
+        s_oper = []
+        s_pred = []
+        s_oper.append('* %d/%02d/%02d %d:%02d ' % (t1.year, t1.month, t1.day,
+                                              t1.hour, t1.minute))
+        s_pred.append('x_test = %0.4f, %0.4f, %0.4f pred = %d \n' \
                  % (x_test[0, 0],
                     x_test[0, 1],
                     x_test[0, 2],
-                    int(prediction[0]))
-        s_oper += argv[1]
-        s_oper += ' Close = %0.5f ' % float(df.closeoutAsk[0])
+                    int(prediction[0])))
+        s_oper.append(argv[1])
+        s_oper.append(' Close = %0.5f ' % float(df.closeoutAsk[0]))
         if t1.hour == current_hour:
             print 'Weekend?'
             sleep(sleep_time)
@@ -173,14 +175,14 @@ def main():
         print 'Prediction using KNN (0:do nothing,1: buy, 2:sell) = ', \
             int(prediction[0])
         action = {0: "Nothing", 1: "Buy", 2: "Sell"}
-        s_oper += 'pred = %s \n' % action[int(prediction[0])]
+        s_oper.append('pred = %s \n' % action[int(prediction[0])])
         probability_success = classifier.predict_proba(x_test)
         print 'Probability of prediction = %0.1f percent' \
               % (probability_success.max() * 100)
-        logger.prediction(s_pred)
+        logger.prediction(''.join(s_pred))
 
         if int(prediction[0]) != 0:
-            logger.operation(s_oper)
+            logger.operation(''.join(s_oper))
             order = create_operation(int(prediction[0]), sys.argv[2],
                                      float(df.closeoutAsk[0]),
                                      sys.argv[3], sys.argv[4])
